@@ -1,0 +1,17 @@
+name: Deploy WhiteLabel
+on:
+  push:
+    branches:
+      - main
+jobs:
+  deploy_prod:
+    runs-on: self-hosted
+    steps:
+      - name: Build
+        run: |
+          cd /home/ovsergeyev/projects/whitelabel
+          git checkout main
+          git pull
+          export $(cat .env | xargs)
+          docker-compose -f docker-compose.yml stop
+          docker-compose -f docker-compose.yml up -d --build

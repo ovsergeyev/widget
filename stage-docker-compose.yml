@@ -1,0 +1,161 @@
+version: '3.9'
+
+# version: '3.9'
+
+# services:
+#   back:
+#     build: ./services/back
+#     volumes:
+#       - .:/fastapi_app
+#     # command: [ "/src/docker/app.sh" ]
+#     env_file:
+#       - .env
+#     ports:
+#       - "8000:8000"
+
+#   front:
+#     build:
+#       context: ./services/front
+#     volumes:
+#       - './services/front:/app'
+#       - '/app/node_modules'
+#       # - ./nginx.conf:/etc/nginx/nginx.conf
+#     ports:
+#       - 81:80
+
+# networks:
+#   default:
+#     name: wl_network
+#     external: true
+
+services:
+  stage_front:
+    container_name: stage_front
+    build:
+      context: ./services/front
+      args:
+        - BACKEND_URL=$BACKEND_URL
+    volumes:
+      - './services/demo.front:/app'
+      - '/app/demo/node_modules:/app/node_modules'
+      # - ./nginx.conf:/etc/nginx/nginx.conf
+    env_file:
+      - .env.stage
+    ports:
+      - 8500:80
+
+  stage_adminka:
+    container_name: stage_adminka
+    build:
+      context: ./services/adminka
+      args:
+        - BACKEND_URL=$BACKEND_URL
+    # volumes:
+    #   - './services/stage.adminka:/app'
+    #   - '/adminka_app/stage/node_modules:/adminka_app/node_modules'
+    # - ./nginx.conf:/etc/nginx/nginx.conf
+    env_file:
+      - .env.stage
+    ports:
+      - 8501:80
+
+  stage_fit_v1:
+    container_name: stage_fit_v1
+    build:
+      context: ./services/fit_v1
+      args:
+        - BACKEND_URL=$BACKEND_URL
+    volumes:
+      - './services/stage.fit_v1:/app'
+      - '/fit_v1_app/stage/node_modules:/app/node_modules'
+      # - ./nginx.conf:/etc/nginx/nginx.conf
+    env_file:
+      - .env.stage
+    ports:
+      - 8502:80
+
+  stage_back:
+    container_name: stage_back
+    build: ./services/back
+    command: [ "/scripts/app.sh" ]
+    volumes:
+      - .:/fastapi_app
+      - stage_logs_volume:/appLogs
+    # command: [ "/src/docker/app.sh" ]
+    env_file:
+      - .env.stage
+    ports:
+      - "8510:8000"
+    depends_on:
+      - stage_db_fit
+
+  stage_db_fit:
+    image: postgres:15.1
+    container_name: stage_pg_fit
+    ports:
+      - 5540:5432
+    environment:
+      - POSTGRES_PASSWORD=${DB_PASS}
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_DB=${DB_NAME}
+    volumes:
+      - stage.postgres_fit_data:/var/lib/postgresql/data/
+    env_file:
+      - .env.stage
+
+  stage-elasticsearch:
+    container_name: stage-elasticsearch
+    build:
+      context: ./services/monitoring/elasticsearch/
+    volumes:
+      - type: volume
+        source: stage.elasticsearch
+        target: /usr/share/elasticsearch/data
+    ports:
+      - "9201:9200"
+    environment:
+      ES_JAVA_OPTS: "-Xmx256m -Xms256m"
+      ELASTIC_PASSWORD: xtGwEuXJ
+      discovery.type: single-node
+    networks:
+      - demo_elk_stack
+
+  stage_logstash:
+    container_name: stage_logstash
+    build:
+      context: ./services/monitoring/logstash/
+      dockerfile: Dockerfile.stage
+    ports:
+      - "5001:5000"
+    environment:
+      LS_JAVA_OPTS: "-Xmx256m -Xms256m"
+    volumes:
+      - stage_logs_volume:/usr/share/logstash/logs
+    networks:
+      - demo_elk_stack
+    depends_on:
+      - stage-elasticsearch
+
+  stage_kibana:
+    container_name: stage_kibana
+    build:
+      context: ./services/monitoring/kibana/
+      dockerfile: Dockerfile.stage
+    ports:
+      - "5602:5601"
+    networks:
+      - demo_elk_stack
+    depends_on:
+      - stage-elasticsearch
+
+volumes:
+  stage.postgres_fit_data:
+  stage.elasticsearch:
+  stage_logs_volume:
+
+networks:
+  default:
+    name: demo_fitness
+    external: true
+  demo_elk_stack:
+    driver: bridge

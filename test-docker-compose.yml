@@ -1,0 +1,84 @@
+version: '3.9'
+
+services:
+  test_front:
+    container_name: test_front
+    build:
+      context: ./services/front
+      args:
+        - BACKEND_URL=$BACKEND_URL
+    volumes:
+      - './services/test.front:/app'
+      - '/app/test/node_modules:/app/node_modules'
+      # - ./nginx.conf:/etc/nginx/nginx.conf
+    env_file:
+      - .env.test
+    ports:
+      - 8700:80
+
+  test_adminka:
+    container_name: test_adminka
+    build:
+      context: ./services/adminka
+      args:
+        - BACKEND_URL=$BACKEND_URL
+    # volumes:
+      # - './services/test.adminka:/app'
+      # - '/adminka_app/test/node_modules:/adminka_app/node_modules'
+      # - ./services/adminka/nginx.conf:/etc/nginx/conf.d/nginx.conf
+      # - ./services/adminka/dist:/usr/share/nginx/html
+    env_file:
+      - .env.test
+    ports:
+      - 8701:80
+
+  test_fit_v1:
+    container_name: test_fit_v1
+    build:
+      context: ./services/fit_v1
+      args:
+        - BACKEND_URL=$BACKEND_URL
+    volumes:
+      - './services/test.fit_v1:/app'
+      - '/fit_v1_app/test/node_modules:/app/node_modules'
+      # - ./nginx.conf:/etc/nginx/nginx.conf
+    env_file:
+      - .env.test
+    ports:
+      - 8702:80
+
+  test_back:
+    container_name: test_back
+    build: ./services/back
+    command: [ "/scripts/app.sh" ]
+    volumes:
+      - .:/fastapi_app
+    # command: [ "/src/docker/app.sh" ]
+    env_file:
+      - .env.test
+    ports:
+      - "8710:8000"
+    depends_on:
+      - test_db_fit
+
+  test_db_fit:
+    image: postgres:15.1
+    container_name: test_pg_fit
+    ports:
+      - 5740:5432
+    environment:
+      - POSTGRES_PASSWORD=${DB_PASS}
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_DB=${DB_NAME}
+    volumes:
+      - test.postgres_fit_data:/var/lib/postgresql/data/
+    env_file:
+      - .env.test
+
+volumes:
+  test.postgres_fit_data:
+
+networks:
+  default:
+    name: test_fitness
+    external: true
