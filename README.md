@@ -1,2 +1,3 @@
-test integration_code - cbe6b79a-7c0e-40b1-8a86-1be288729759
-test user_token - 711CF4FBCBAFE5B49864C2CFC5997EC4
+Проект виджета для продаж посещений в термальный комплекс.
+Интегрируется с 1С (REST API). Имеет отдельный сервис админки, а также мониторинг с помощью ELK.
+Встраивается на различные сайты (пример https://greenflowlakhtapark.ru/widget)
