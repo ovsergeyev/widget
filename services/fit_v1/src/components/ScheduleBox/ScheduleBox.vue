@@ -109,7 +109,8 @@ const getTooltipText = (offer: IOffer) => {
     }
   }
   if(offer.isActive && offer.availableSlots === 0){
-    result = `Мест нет`
+    // result = `Мест нет`
+    result = ''
   }
   return result;
 }
